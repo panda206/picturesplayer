@@ -1,0 +1,4 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#500584E6"/> <!-- 按钮颜色 -->
+    <corners android:radius="24dp"/> <!-- 圆角 -->
+</shape>
