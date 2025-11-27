@@ -1,6 +1,7 @@
 package com.example.photo6
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -55,15 +56,35 @@ class PhotoFolderFragment : Fragment() {
         // 根据屏幕宽度和最小宽度自适应列数
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
-        val minItemWidthPx = (120 * displayMetrics.density).toInt() // 每个缩略图最小宽度
-        var spanCount = screenWidth / minItemWidthPx
-        if (spanCount < 2) spanCount = 2
+        val minItemWidthPx = (120 * displayMetrics.density).toInt()
 
+// 自动列数，根据屏幕宽度计算
+        val spanCount = (screenWidth / minItemWidthPx).coerceAtLeast(2)
+
+// 布局管理器
         recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
+
+// 设置 adapter
         recyclerView.adapter = PhotoAdapter(photoList) { file ->
             Toast.makeText(requireContext(), "点击图片: ${file.name}", Toast.LENGTH_SHORT).show()
-            // TODO: 后续可打开全屏预览
+            Log.d("PhotoFolder", "点击图片${file.name}")
         }
+
+// 计算间距 dp -> px
+        val spacing = (1 * displayMetrics.density).toInt()
+
+// RecyclerView 内边距
+        recyclerView.setPadding(0, 0, 0, 0)
+        recyclerView.clipToPadding = false
+
+
+// 删除已有装饰
+ //       while (recyclerView.itemDecorationCount > 0) {
+  //          recyclerView.removeItemDecorationAt(0)
+ //       }
+// 添加网格间距
+ //       recyclerView.addItemDecoration(GridSpacingItemDecoration(spanCount, spacing))
+
     }
 
     private fun loadPhotos() {

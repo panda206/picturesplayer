@@ -16,7 +16,7 @@ import android.view.animation.TranslateAnimation
 import android.widget.Button
 import androidx.appcompat.app.AlertDialog
 import com.example.photo6.databinding.FragmentFileBinding
-
+import com.example.photo6.GridSpacingItemDecoration
 
 class FileFragment : Fragment() {
 
@@ -60,11 +60,33 @@ class FileFragment : Fragment() {
 
         val btnDelete = view.findViewById<View>(R.id.btn_delete)
 
+        // --- 开始替换：动态计算列数 + 等距 ItemDecoration（跨手机/平板对称） ---
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
+// 保持你之前的最小 item 宽度 dp （可根据需要调整）
         val minPhotoWidthPx = (133 * displayMetrics.density).toInt()
-        val span = if (screenWidth / minPhotoWidthPx > 0) screenWidth / minPhotoWidthPx else 1
-        fileRecyclerView.layoutManager = GridLayoutManager(requireContext(), span)
+
+// 动态计算列数（至少 1 列）
+        val spanCount = (screenWidth / minPhotoWidthPx).coerceAtLeast(1)
+
+// 设置 GridLayoutManager
+        fileRecyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
+
+// spacing（以 dp 为单位）
+        val spacing = (12 * displayMetrics.density).toInt() // 你可以把 12 改成 8/10 等
+
+// 给 RecyclerView 设置统一内边距（左右边距与 spacing 一致）
+        fileRecyclerView.setPadding(spacing, spacing, spacing, spacing)
+        fileRecyclerView.clipToPadding = false
+
+// 先移除已存在的 ItemDecoration（如果你之前添加过），避免重复添加
+        while (fileRecyclerView.itemDecorationCount > 0) {
+            fileRecyclerView.removeItemDecorationAt(0)
+        }
+// 添加等距 ItemDecoration（下面会提供类 GridSpacingItemDecoration）
+        fileRecyclerView.addItemDecoration(GridSpacingItemDecoration(spanCount, spacing))
+// --- 替换结束 ---
+
 
         // 4. 创建 adapter（只创建一次），把 selectedFolders 的引用传进去
         folderAdapter = FolderAdapter(folderList, selectedFolders) { folder ->
