@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 背景颜色 -->
+    <solid android:color="#F5F5F5"/>
+    <!-- 内边距（TextView 的 padding 也可以调）-->
+    <padding
+        android:left="12dp"
+        android:top="5dp"
+        android:right="12dp"
+        android:bottom="5dp"/>
+    <!-- 圆角 -->
+    <corners android:radius="24dp"/>
+</shape>

@@ -1,8 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.recyclerview.widget.RecyclerView
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rv_photos"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="2dp"
-    android:clipToPadding="false"/>
+    android:layout_height="match_parent">
+
+    <!-- 顶部按钮 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+
+        android:background="#FFFFFF"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- 返回按钮 -->
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/bg_toolbar_icon"
+            android:padding="5dp"
+            android:src="@drawable/ic_arrow_back"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <!-- 全选按钮 -->
+        <TextView
+            android:id="@+id/iv_select_all"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="60dp"
+            android:minHeight="32dp"
+            android:gravity="center"
+            android:text="全选"
+            android:textSize="15sp"
+            android:textColor="#333333"  android:background="@drawable/bg_toolbar_icon" android:layout_marginEnd="16dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/iv_select"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <!-- 进入选择模式按钮 -->
+        <ImageView
+            android:id="@+id/iv_select"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_icon_round"
+            android:padding="5dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_unselect"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <LinearLayout
+        android:id="@+id/bottom_action_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:background="#FFFFFF"
+        android:elevation="8dp"  android:visibility="gone" app:layout_constraintBottom_toBottomOf="parent">
+
+        <Button
+            android:id="@+id/btn_move"
+            android:layout_width="0dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:text="移动"
+            android:textColor="#333333"
+            android:textSize="16sp"
+            android:background="@drawable/bg_delete_button"
+            android:layout_marginEnd="24dp"/>
+
+        <Button
+            android:id="@+id/btn_delete"
+            android:layout_width="0dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:text="删除"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:background="@drawable/bg_delete_button"
+            android:layout_marginStart="24dp"/>
+
+    </LinearLayout>
+
+    <!-- 照片网格 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_photos"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

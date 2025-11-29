@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".FileFragment">
@@ -16,38 +18,53 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
-            android:background="#FFFFFF"
+            android:padding="10dp"
+            android:background="@android:color/transparent"
+
             android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tv_file_manager"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="文件管理"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:background="@drawable/bg_file_title"/>
 
-            <ImageView
-                android:id="@+id/iv_select"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_unselect" />
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-            <ImageView
-                android:id="@+id/iv_new_folder"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/newfile" />
+                <ImageView
+                    android:id="@+id/iv_select"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="@drawable/bg_icon_round"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_unselect"
+                    app:layout_constraintEnd_toStartOf="@id/iv_new_folder"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+                <ImageView
+                    android:id="@+id/iv_new_folder"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_icon_round"
+                    android:padding="6dp"
+                    android:src="@drawable/newfile"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
         </LinearLayout>
 
-        <!-- 横线 -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#CCCCCC" />
+
 
         <!-- 文件列表 -->
         <androidx.recyclerview.widget.RecyclerView
@@ -55,8 +72,8 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:padding="0dp"
-            android:clipToPadding="false" />
+            android:clipToPadding="false"
+            android:padding="0dp" />
     </LinearLayout>
 
     <!-- 底部的删除按钮（默认隐藏） -->
