@@ -18,6 +18,7 @@ import android.widget.TextView // 确保导入
 import android.graphics.Color
 import android.widget.Button
 import android.widget.LinearLayout // 确保导入
+import android.util.TypedValue
 
 class PhotoFolderFragment : Fragment() {
 
@@ -27,6 +28,7 @@ class PhotoFolderFragment : Fragment() {
     // 1. 新增：状态变量
     private var isSelectionMode = false // 是否处于选择模式
     private val selectedPhotos = mutableSetOf<File>() // 存放被选中的照片
+    private var targetFolderForMoveCopy: File? = null  // 跟踪在移动/复制对话框中选中的目标文件夹
     // 声明移动和删除按钮
     private lateinit var bottomActionBar: LinearLayout
     private lateinit var btnMove: Button
@@ -38,7 +40,6 @@ class PhotoFolderFragment : Fragment() {
 
     companion object {
         private const val ARG_FOLDER_PATH = "folder_path"
-
         fun newInstance(folderPath: String): PhotoFolderFragment {
             val fragment = PhotoFolderFragment()
             val bundle = Bundle()
@@ -152,10 +153,13 @@ class PhotoFolderFragment : Fragment() {
         btnMove.setOnClickListener {
             Toast.makeText(requireContext(), "移动 ${selectedPhotos.size} 张照片", Toast.LENGTH_SHORT).show()
             // TODO: 真正的移动逻辑
+            if (selectedPhotos.isEmpty()) return@setOnClickListener
+            // 真正的移动逻辑：调用照片移动对话框
+            showMoveFolderDialog()
 
         }
         btnDelete.setOnClickListener {
-            Toast.makeText(requireContext(), "删除 ${selectedPhotos.size} 张照片", Toast.LENGTH_SHORT).show()
+
             // TODO: 真正的删除逻辑
             showDeleteConfirmationDialog()
         }
@@ -258,6 +262,245 @@ class PhotoFolderFragment : Fragment() {
                     }
                     .start()
             }
+        }
+    }
+    // PhotoFolderFragment.kt: 在 loadPhotos() 方法后面添加
+
+    /**
+     * 获取当前文件夹的同级文件夹列表，作为照片移动的目标。
+     */
+    private fun getAllSiblingFolders(): List<File> {
+        // 当前文件夹的父目录，即 PhotoFile 目录
+        val parentDir = folder.parentFile ?: return emptyList()
+
+        // 1. 列出父目录中所有是目录的文件
+        // 2. 排除掉当前所在的文件夹 (folder)
+        return parentDir.listFiles()
+            ?.filter { it.isDirectory && it != folder }
+            ?.toList()
+            ?: emptyList()
+    }
+
+    /**
+     * 【自定义布局实现】在一个对话框内显示目标文件夹列表和操作按钮。
+     */
+    private fun showMoveFolderDialog() {
+        val context = requireContext()
+        val availableDestinations = getAllSiblingFolders()
+
+        if (availableDestinations.isEmpty()) {
+            Toast.makeText(context, "没有其他文件夹可以移动到。", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 1. 加载自定义布局
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_move_copy, null)
+        val recyclerView: RecyclerView = dialogView.findViewById(R.id.rv_destination_folders)
+        val btnMove: Button = dialogView.findViewById(R.id.btn_move_dialog)
+        val btnCopy: Button = dialogView.findViewById(R.id.btn_copy_dialog)
+        val btnCancel: Button = dialogView.findViewById(R.id.btn_cancel_dialog)
+
+        // 2. 创建对话框
+        val dialog = AlertDialog.Builder(context)
+            .setView(dialogView)
+            .create()
+        // 关键步骤：设置圆角背景
+        dialog.window?.setBackgroundDrawableResource(R.drawable.dialog_background_rounded)
+        // 3. 设置 RecyclerView
+        recyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
+        val dialogAdapter = DestinationAdapter(availableDestinations) { folder ->
+            // 当列表中的文件夹被点击时
+            targetFolderForMoveCopy = folder
+            // 确保按钮可用 (默认按钮在 XML 中可能是不可用的，这里我们强制启用)
+            btnMove.isEnabled = true
+            btnCopy.isEnabled = true
+        }
+        recyclerView.adapter = dialogAdapter
+
+        // 4. 初始化按钮状态
+        targetFolderForMoveCopy = null // 重置选中状态
+        btnMove.isEnabled = false // 默认禁用，直到用户选择目标
+        btnCopy.isEnabled = false
+
+        // 5. 设置底部按钮监听器
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+
+        btnMove.setOnClickListener {
+            val target = targetFolderForMoveCopy
+            if (target != null) {
+                // 执行移动 (删除原件)
+                moveSelectedPhotosTo(target)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(context, "请先选择目标文件夹", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnCopy.setOnClickListener {
+            val target = targetFolderForMoveCopy
+            if (target != null) {
+                // 执行复制 (保留原件)
+                copySelectedPhotosTo(target)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(context, "请先选择目标文件夹", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
+    }
+
+    inner class DestinationAdapter(
+        private val folders: List<File>,
+        private val onItemClick: (File) -> Unit
+    ) : RecyclerView.Adapter<DestinationAdapter.DestinationViewHolder>() {
+
+        // 跟踪当前选中的位置 (用于高亮或视觉反馈)
+        private var selectedPosition = RecyclerView.NO_POSITION
+
+        // 修正：只引用 simple_list_item_1 中存在的 TextView
+        inner class DestinationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            // 使用系统内置的 text1 ID 来引用 TextView
+            val folderName: TextView = itemView.findViewById(android.R.id.text1)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DestinationViewHolder {
+            // 使用系统内置的简单布局
+            val view = LayoutInflater.from(parent.context)
+                .inflate(android.R.layout.simple_list_item_1, parent, false)
+            return DestinationViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: DestinationViewHolder, position: Int) {
+            val folder = folders[position]
+            holder.folderName.text = folder.name
+            val isSelected = selectedPosition == position
+
+            // 可选：添加简单的视觉反馈，例如改变背景颜色
+            holder.itemView.setBackgroundColor(
+                if (isSelected)
+                    android.graphics.Color.TRANSPARENT // 浅灰色高亮
+                else
+                    android.graphics.Color.TRANSPARENT
+            )
+            // 2. 字体颜色和大小
+            holder.folderName.apply {
+                if (isSelected) {
+                    // 选中状态：蓝色，字体放大
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f) // 假设原字体是 16sp，放大到 18sp
+                    setTextColor(holder.itemView.context.getColor(R.color.blue_selection)) // <-- 注意 R.color.blue_selection
+                    setTypeface(null, android.graphics.Typeface.BOLD) // 加粗
+                } else {
+                    // 普通状态：默认颜色，默认大小
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f) // 恢复到默认大小
+                    setTextColor(android.graphics.Color.BLACK) // 恢复到黑色或默认灰色
+                    setTypeface(null, android.graphics.Typeface.NORMAL) // 恢复到普通
+                }
+            }
+
+            holder.itemView.setOnClickListener {
+                if (selectedPosition != holder.adapterPosition) {
+                    // 1. 通知外部 Fragment 已选中该文件夹
+                    onItemClick(folder)
+
+                    // 2. 更新选中状态并刷新列表（实现单选高亮效果）
+                    val oldPosition = selectedPosition
+                    selectedPosition = holder.adapterPosition
+                    notifyItemChanged(oldPosition)
+                    notifyItemChanged(selectedPosition)
+                }
+            }
+        }
+
+        override fun getItemCount(): Int = folders.size
+    }
+    /**
+     * 执行实际的照片文件复制操作。
+     * 复制完成后，原照片保留。
+     */
+    private fun copySelectedPhotosTo(destinationFolder: File) {
+        val context = requireContext()
+        var copyCount = 0
+        val failedFiles = mutableListOf<File>()
+
+        // 遍历所有被选中的照片文件
+        val photosToCopy = selectedPhotos.toList()
+
+        photosToCopy.forEach { sourceFile ->
+            val newFile = File(destinationFolder, sourceFile.name)
+
+            // 1. 检查目标位置是否已存在同名文件
+            if (newFile.exists()) {
+                failedFiles.add(sourceFile)
+                Log.e("PhotoFolderFragment", "目标文件已存在，跳过复制: ${newFile.absolutePath}")
+                return@forEach // 跳过这个文件
+            }
+
+            // 2. 执行复制操作
+            try {
+                // copyTo 是 Kotlin/Java IO 库的方法
+                sourceFile.copyTo(newFile)
+                copyCount++
+            } catch (e: Exception) {
+                failedFiles.add(sourceFile)
+                Log.e("PhotoFolderFragment", "复制失败: ${e.message}")
+            }
+        }
+
+        // 清理选中状态，刷新 UI (原照片保留，但需要退出选择模式)
+        exitSelectionMode() // 请确保这个方法存在并能清理 selectedPhotos 和刷新 Adapter
+
+        // 结果反馈
+        if (copyCount > 0) {
+            Toast.makeText(context, "成功复制 $copyCount 张照片到 ${destinationFolder.name}", Toast.LENGTH_SHORT).show()
+        }
+        if (failedFiles.isNotEmpty()) {
+            Toast.makeText(context, "${failedFiles.size} 张照片复制失败 (目标已存在或权限问题)", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * 执行实际的照片文件移动操作。
+     */
+    private fun moveSelectedPhotosTo(destinationFolder: File) {
+        val context = requireContext()
+        var moveCount = 0
+        val failedFiles = mutableListOf<File>()
+
+        // 遍历所有被选中的照片文件
+        val photosToMove = selectedPhotos.toList()
+
+        photosToMove.forEach { sourceFile ->
+            // 新的目标路径：目标文件夹 / 源文件名称
+            val newFile = File(destinationFolder, sourceFile.name)
+
+            // 1. 检查目标位置是否已存在同名文件
+            if (newFile.exists()) {
+                failedFiles.add(sourceFile)
+                Log.e("PhotoFolderFragment", "目标文件已存在: ${newFile.absolutePath}")
+                return@forEach // 跳过这个文件
+            }
+
+            // 2. 执行移动（重命名操作）
+            if (sourceFile.renameTo(newFile)) {
+                // 移动成功
+                photoList.remove(sourceFile) // 从当前照片列表中移除
+                moveCount++
+            } else {
+                failedFiles.add(sourceFile)
+            }
+        }
+
+        // 清理选中状态，刷新 UI
+        exitSelectionMode() // 会自动清理 selectedPhotos 和刷新 Adapter
+
+        // 结果反馈
+        if (moveCount > 0) {
+            Toast.makeText(context, "成功移动 $moveCount 张照片到 ${destinationFolder.name}", Toast.LENGTH_SHORT).show()
+        }
+        if (failedFiles.isNotEmpty()) {
+            Toast.makeText(context, "${failedFiles.size} 张照片移动失败 (目标已存在或权限问题)", Toast.LENGTH_LONG).show()
         }
     }
     //删除照片确认函数

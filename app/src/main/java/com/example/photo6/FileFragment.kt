@@ -24,6 +24,8 @@ class FileFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var btnDelete: Button
+
+
     private lateinit var fileRecyclerView: RecyclerView
 
     // 适配器数据源
@@ -46,7 +48,8 @@ class FileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 
-        btnDelete = view.findViewById(R.id.btn_delete)
+        btnDelete = view.findViewById(R.id.btn_delete)  // 删除文件夹
+
 
         super.onViewCreated(view, savedInstanceState)
 
@@ -63,29 +66,29 @@ class FileFragment : Fragment() {
         // --- 开始替换：动态计算列数 + 等距 ItemDecoration（跨手机/平板对称） ---
         val displayMetrics = resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
-// 保持你之前的最小 item 宽度 dp （可根据需要调整）
+        // 保持你之前的最小 item 宽度 dp （可根据需要调整）
         val minPhotoWidthPx = (133 * displayMetrics.density).toInt()
 
-// 动态计算列数（至少 1 列）
+        // 动态计算列数（至少 1 列）
         val spanCount = (screenWidth / minPhotoWidthPx).coerceAtLeast(1)
 
-// 设置 GridLayoutManager
+        // 设置 GridLayoutManager
         fileRecyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
 
-// spacing（以 dp 为单位）
-        val spacing = (12 * displayMetrics.density).toInt() // 你可以把 12 改成 8/10 等
+        // spacing（以 dp 为单位）
+        val spacing = (12 * displayMetrics.density).toInt() // 可以把 12 改成 8/10 等
 
-// 给 RecyclerView 设置统一内边距（左右边距与 spacing 一致）
+        // 给 RecyclerView 设置统一内边距（左右边距与 spacing 一致）
         fileRecyclerView.setPadding(spacing, spacing, spacing, spacing)
         fileRecyclerView.clipToPadding = false
 
-// 先移除已存在的 ItemDecoration（如果你之前添加过），避免重复添加
+        // 先移除已存在的 ItemDecoration（如果你之前添加过），避免重复添加
         while (fileRecyclerView.itemDecorationCount > 0) {
             fileRecyclerView.removeItemDecorationAt(0)
         }
-// 添加等距 ItemDecoration（下面会提供类 GridSpacingItemDecoration）
+        // 添加等距 ItemDecoration（下面会提供类 GridSpacingItemDecoration）
         fileRecyclerView.addItemDecoration(GridSpacingItemDecoration(spanCount, spacing))
-// --- 替换结束 ---
+        // --- 替换结束 ---
 
 
         // 4. 创建 adapter（只创建一次），把 selectedFolders 的引用传进去
@@ -157,6 +160,9 @@ class FileFragment : Fragment() {
             Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
             Log.d("FileFragmentLog", msg)
         }
+
+
+
         //删除按钮逻辑功能
         btnDelete.setOnClickListener {
             if (selectedFolders.isEmpty()) return@setOnClickListener
@@ -195,9 +201,6 @@ class FileFragment : Fragment() {
             createNewFolder()
 
         }
-
-
-
 
     }
     //新建文件夹逻辑
@@ -276,38 +279,48 @@ class FileFragment : Fragment() {
         }
         Log.d("FileFragmentLog", "读取目录: ${photoFileDir.absolutePath}  共 ${folderList.size} 个文件夹")
     }
+
+
     /// 控制删除按钮显示 / 隐藏并加动画
     private fun updateBottomActionUI() {
+        // 统一控制删除和移动按钮
+        val targetViews = listOf(btnDelete) // <-- 关键修改
+
         if (selectedFolders.isNotEmpty()) {
-            if (btnDelete.visibility != View.VISIBLE) {
-                btnDelete.apply {
-                    // 重置状态
-                    alpha = 0f
-                    translationY = 100f * resources.displayMetrics.density
-                    visibility = View.VISIBLE
-                    animate()
-                        .alpha(1f)
-                        .translationY(0f)
-                        .setDuration(300)
-                        .start()
+            targetViews.forEach { button ->
+                if (button.visibility != View.VISIBLE) {
+                    button.apply {
+                        // 重置状态
+                        alpha = 0f
+                        translationY = 100f * resources.displayMetrics.density
+                        visibility = View.VISIBLE
+                        animate()
+                            .alpha(1f)
+                            .translationY(0f)
+                            .setDuration(300)
+                            .start()
+                    }
                 }
             }
         } else {
-            if (btnDelete.visibility == View.VISIBLE) {
-                btnDelete.animate()
-                    .alpha(0f)
-                    .translationY(100f * resources.displayMetrics.density) // 可选，往下滑
-                    .setDuration(300)
-                    .withEndAction {
-                        btnDelete.visibility = View.GONE
-                        // 重置状态，保证下一次显示动画能生效
-                        btnDelete.alpha = 1f
-                        btnDelete.translationY = 0f
-                    }
-                    .start()
+            targetViews.forEach { button ->
+                if (button.visibility == View.VISIBLE) {
+                    button.animate()
+                        .alpha(0f)
+                        .translationY(100f * resources.displayMetrics.density) // 可选，往下滑
+                        .setDuration(300)
+                        .withEndAction {
+                            button.visibility = View.GONE
+                            // 重置状态，保证下一次显示动画能生效
+                            button.alpha = 1f
+                            button.translationY = 0f
+                        }
+                        .start()
+                }
             }
         }
     }
+    
 
 
 
