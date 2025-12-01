@@ -87,7 +87,7 @@
         android:background="@drawable/bg_delete_button"
         android:visibility="gone"
         android:layout_gravity="center|bottom"
-        android:layout_marginBottom="89dp"/> <!-- 这里控制距离底部的距离 -->
+        android:layout_marginBottom="39dp"/> <!-- 这里控制距离底部的距离 -->
 
 
 

@@ -12,7 +12,6 @@
         android:layout_height="60dp"
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
-
         android:background="#FFFFFF"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -38,7 +37,9 @@
             android:gravity="center"
             android:text="全选"
             android:textSize="15sp"
-            android:textColor="#333333"  android:background="@drawable/bg_toolbar_icon" android:layout_marginEnd="16dp"
+            android:textColor="#333333"
+            android:background="@drawable/bg_toolbar_icon"
+            android:layout_marginEnd="16dp"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:visibility="gone"
@@ -70,8 +71,10 @@
         android:paddingEnd="32dp"
         android:paddingTop="12dp"
         android:paddingBottom="12dp"
-        android:background="#FFFFFF"
-        android:elevation="8dp"  android:visibility="gone" app:layout_constraintBottom_toBottomOf="parent">
+        android:background="@android:color/transparent"
+        android:elevation="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <Button
             android:id="@+id/btn_move"
@@ -81,8 +84,10 @@
             android:text="移动"
             android:textColor="#333333"
             android:textSize="16sp"
-            android:background="@drawable/bg_delete_button"
-            android:layout_marginEnd="24dp"/>
+            android:background="@drawable/bg_button_move_solid"
+            android:layout_marginEnd="24dp"
+            app:backgroundTint="@null"
+            />
 
         <Button
             android:id="@+id/btn_delete"
@@ -90,10 +95,12 @@
             android:layout_height="45dp"
             android:layout_weight="1"
             android:text="删除"
-            android:textColor="#FFFFFF"
+            android:textColor="#E60013"
             android:textSize="16sp"
-            android:background="@drawable/bg_delete_button"
-            android:layout_marginStart="24dp"/>
+            android:background="@drawable/bg_button_delete_solid"
+            android:layout_marginStart="24dp"
+            app:backgroundTint="@null"
+            />
 
     </LinearLayout>
 

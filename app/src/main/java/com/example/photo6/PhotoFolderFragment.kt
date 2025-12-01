@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog // 推荐使用 AppCompat 的 AlertDialog
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -15,6 +16,8 @@ import android.widget.ImageView
 import java.io.File
 import android.widget.TextView // 确保导入
 import android.graphics.Color
+import android.widget.Button
+import android.widget.LinearLayout // 确保导入
 
 class PhotoFolderFragment : Fragment() {
 
@@ -24,7 +27,10 @@ class PhotoFolderFragment : Fragment() {
     // 1. 新增：状态变量
     private var isSelectionMode = false // 是否处于选择模式
     private val selectedPhotos = mutableSetOf<File>() // 存放被选中的照片
-
+    // 声明移动和删除按钮
+    private lateinit var bottomActionBar: LinearLayout
+    private lateinit var btnMove: Button
+    private lateinit var btnDelete: Button
     // 保留 Adapter 的引用以便刷新
     private lateinit var photoAdapter: PhotoAdapter
     private lateinit var ivSelect: ImageView
@@ -80,6 +86,12 @@ class PhotoFolderFragment : Fragment() {
         ivSelect = view.findViewById(R.id.iv_select) // 初始化全局变量
         ivSelectAll = view.findViewById(R.id.iv_select_all) // 【新增】找到全选按钮
 
+        //加载照片
+        loadPhotos()
+
+        // 设置 Adapter (注意：这里不需要传点击回调了，逻辑移到 Adapter 内部判断)
+        photoAdapter = PhotoAdapter(photoList)
+
         // 【新增】全选按钮点击逻辑
         ivSelectAll.setOnClickListener {
             // 点击动画
@@ -90,11 +102,6 @@ class PhotoFolderFragment : Fragment() {
             handleSelectAllClick()
         }
 
-        //加载照片
-        loadPhotos()
-
-        // 设置 Adapter (注意：这里不需要传点击回调了，逻辑移到 Adapter 内部判断)
-        photoAdapter = PhotoAdapter(photoList)
 
         // ① 返回
         ivBack.setOnClickListener {
@@ -136,6 +143,22 @@ class PhotoFolderFragment : Fragment() {
 
         }
 
+        // 【新增】底部栏引用
+        bottomActionBar = view.findViewById(R.id.bottom_action_bar)
+        btnMove = view.findViewById(R.id.btn_move)
+        btnDelete = view.findViewById(R.id.btn_delete)
+
+        // 【新增】底部按钮监听 (占位逻辑)
+        btnMove.setOnClickListener {
+            Toast.makeText(requireContext(), "移动 ${selectedPhotos.size} 张照片", Toast.LENGTH_SHORT).show()
+            // TODO: 真正的移动逻辑
+
+        }
+        btnDelete.setOnClickListener {
+            Toast.makeText(requireContext(), "删除 ${selectedPhotos.size} 张照片", Toast.LENGTH_SHORT).show()
+            // TODO: 真正的删除逻辑
+            showDeleteConfirmationDialog()
+        }
 
         // 布局计算逻辑
         // 根据屏幕宽度和最小宽度自适应列数
@@ -143,31 +166,32 @@ class PhotoFolderFragment : Fragment() {
         val screenWidth = displayMetrics.widthPixels
         val minItemWidthPx = (120 * displayMetrics.density).toInt()
 
-// 自动列数，根据屏幕宽度计算
+        // 自动列数，根据屏幕宽度计算
         val spanCount = (screenWidth / minItemWidthPx).coerceAtLeast(3)
 
-// 布局管理器
+        // 布局管理器
         recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
 
-// 设置 adapter
+        // 设置 adapter
         recyclerView.adapter = photoAdapter
 
-// 计算间距 dp -> px
+        // 计算间距 dp -> px
         val spacing = (1 * displayMetrics.density).toInt()
 
-// RecyclerView 内边距
+        // RecyclerView 内边距
         recyclerView.setPadding(0, 0, 0, 0)
         recyclerView.clipToPadding = false
 
 
-// 删除已有装饰
- //       while (recyclerView.itemDecorationCount > 0) {
-  //          recyclerView.removeItemDecorationAt(0)
- //       }
-// 添加网格间距
- //       recyclerView.addItemDecoration(GridSpacingItemDecoration(spanCount, spacing))
+        // 删除已有装饰
+        //while (recyclerView.itemDecorationCount > 0) {
+        //    recyclerView.removeItemDecorationAt(0)
+        //}
+        // 添加网格间距
+        //recyclerView.addItemDecoration(GridSpacingItemDecoration(spanCount, spacing))
         // 【新增】初始化顶部 UI 状态
         updateTopBarUI()
+        updateBottomActionUI() // 初始化时隐藏底部栏
 
     }
     // 【新增】全选/取消全选逻辑
@@ -189,9 +213,105 @@ class PhotoFolderFragment : Fragment() {
         // 刷新 Adapter 和顶部 UI 状态
         photoAdapter.notifyDataSetChanged()
         updateTopBarUI()
+        updateBottomActionUI() // 【关键】新增
     }
 
+    // 【新增】控制底部栏显示/隐藏及动画
+    private fun updateBottomActionUI() {
+        // 只有在选择模式下 AND 选中数量大于 0 时才显示
+        val show = isSelectionMode && selectedPhotos.isNotEmpty()
 
+        if (show) {
+            if (bottomActionBar.visibility != View.VISIBLE) {
+                bottomActionBar.apply {
+                    // 执行上滑动画
+                    // 注意：由于 bottomActionBar 初始可能没有高度，需要先计算或使用已知高度
+                    measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+                    val barHeight = measuredHeight.toFloat()
+
+                    translationY = barHeight // 将底部栏推到屏幕外
+                    visibility = View.VISIBLE
+                    Log.d("PhotoFolderFragment", "显示按钮")
+                    animate()
+                        .translationY(0f) // 动画滑入到屏幕底部
+                        .setDuration(300)
+                        .start()
+                }
+            }
+
+            // 选中数量更新文字 (可选)
+            btnDelete.text = "删除 (${selectedPhotos.size})"
+            btnMove.text = "移动 (${selectedPhotos.size})"
+
+        } else {
+            if (bottomActionBar.visibility == View.VISIBLE) {
+                // 执行下滑动画
+                // 确保动画知道高度
+                val barHeight = bottomActionBar.height.toFloat()
+                Log.d("PhotoFolderFragment", "隐藏按钮")
+                bottomActionBar.animate()
+                    .translationY(barHeight) // 动画下滑出屏幕
+                    .setDuration(300)
+                    .withEndAction {
+                        bottomActionBar.visibility = View.GONE
+                        bottomActionBar.translationY = 0f // 重置，确保下次动画能从正确位置开始
+                    }
+                    .start()
+            }
+        }
+    }
+    //删除照片确认函数
+
+    private fun showDeleteConfirmationDialog() {
+        if (selectedPhotos.isEmpty()) return
+
+        val count = selectedPhotos.size
+
+        // 【修改点】传入 R.style.RoundedAlertDialogStyle
+        AlertDialog.Builder(requireContext(), R.style.RoundedAlertDialogStyle)
+            .setTitle("确认删除")
+            .setMessage("你确定要除这 $count 张照片吗？")
+            .setPositiveButton("删除") { dialog, which ->
+                deleteSelectedPhotos()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+    //删除照片的执行函数
+    private fun deleteSelectedPhotos() {
+        if (selectedPhotos.isEmpty()) return
+
+        val deletedCount = mutableListOf<File>()
+        val failedCount = mutableListOf<File>()
+        val context = requireContext()
+
+        // 尝试删除文件
+        selectedPhotos.forEach { file ->
+            // 在 Android 10+ (API 29+) 上，对于非应用创建的文件，file.delete() 可能需要 MANAGE_EXTERNAL_STORAGE 权限，
+            // 或者需要使用 MediaStore API 进行操作。这里使用基础的 File API。
+            if (file.delete()) {
+                deletedCount.add(file)
+                // 提示：如果要保证文件删除后 MediaStore 立即更新，还需要调用 MediaStore API
+            } else {
+                failedCount.add(file)
+            }
+        }
+
+        // 更新数据模型
+        if (deletedCount.isNotEmpty()) {
+            photoList.removeAll(deletedCount) // 从主列表中移除已删除的文件
+            selectedPhotos.clear()           // 清空选中列表
+
+            Toast.makeText(context, "成功删除 ${deletedCount.size} 张照片。", Toast.LENGTH_SHORT).show()
+        }
+
+        if (failedCount.isNotEmpty()) {
+            Toast.makeText(context, "警告：${failedCount.size} 张照片删除失败，请检查应用权限。", Toast.LENGTH_LONG).show()
+        }
+
+        // 退出选择模式并刷新 UI (exitSelectionMode 会自动刷新 Adapter)
+        exitSelectionMode()
+    }
     // 【新增】统一管理顶部 UI 状态 (全选按钮的显示和图标)
     private fun updateTopBarUI() {
         // 定义颜色常量 (你可以根据你的 App 主题修改这些颜色值)
@@ -239,6 +359,7 @@ class PhotoFolderFragment : Fragment() {
         }
         // 【关键】刷新 UI
         updateTopBarUI() // 调用新增的方法来设置全选按钮的可见性和图标
+        updateBottomActionUI() // 【关键】新增
         // 刷新整个列表以更新 UI 状态
         photoAdapter.notifyDataSetChanged()
     }
@@ -249,6 +370,7 @@ class PhotoFolderFragment : Fragment() {
         selectedPhotos.clear()
         //ivSelect.setImageResource(R.drawable.ic_unselect)
         updateTopBarUI() // 调用新增的方法来设置全选按钮的可见性和图标
+        updateBottomActionUI() // 【关键】新增
         photoAdapter.notifyDataSetChanged()
     }
 
@@ -315,6 +437,8 @@ class PhotoFolderFragment : Fragment() {
                     } else {
                         selectedPhotos.add(file)
                     }
+                    updateTopBarUI()
+                    updateBottomActionUI() // 【关键】新增
                     // 仅刷新当前 Item，性能更好
                     notifyItemChanged(position)
 
