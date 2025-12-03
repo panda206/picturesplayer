@@ -7,12 +7,13 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         .container { max-width: 600px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h3 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+        h3 { text-align:center; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
         #uploadForm input[type="file"] { width: 100%; margin-top: 10px; }
         #uploadForm input[type="submit"] { margin-top: 15px; width: 100%; padding: 10px; background-color: #4CAF50; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         #uploadForm input[type="submit"]:hover { background-color: #45a049; }
         .progress-container { margin-top: 20px; display: none; }
         .progress-bar { width: 0%; height: 25px; background-color: #2196F3; text-align: center; line-height: 25px; color: white; border-radius: 4px; transition: width 0.3s; }
+        #sizeText { margin-top: 10px; font-size: 14px; color: #444; text-align:center; }
         #result { margin-top: 20px; padding: 15px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; white-space: pre-wrap; }
     </style>
 </head>
@@ -28,12 +29,20 @@
     <div class="progress-container" id="progressContainer">
         <label>上传进度:</label>
         <div id="progressBar" class="progress-bar">0%</div>
+        <div id="sizeText"></div>
     </div>
 
     <div id="result"></div>
 </div>
 
 <script>
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes/1024).toFixed(2) + " KB";
+        if (bytes < 1024 * 1024 * 1024) return (bytes/1024/1024).toFixed(2) + " MB";
+        return (bytes/1024/1024/1024).toFixed(2) + " GB";
+    }
+
     document.getElementById('uploadForm').addEventListener('submit', async function(event) {
         event.preventDefault();
 
@@ -41,21 +50,39 @@
         const submitButton = document.getElementById('submitButton');
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
+        const sizeText = document.getElementById('sizeText');
         const resultDiv = document.getElementById('result');
 
         if (fileInput.files.length === 0) return alert('请选择文件！');
 
+        const files = Array.from(fileInput.files);
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
+        // 🔥 计算所有文件总大小
+        const totalBytesAll = files.reduce((sum, f) => sum + f.size, 0);
+        let uploadedBytes = 0;
+
+        // 🔥 计算总 chunk 数
+        let totalChunksAll = 0;
+        for (const f of files) {
+            totalChunksAll += Math.ceil(f.size / CHUNK_SIZE);
+        }
+
+        let uploadedChunks = 0;
+
         submitButton.disabled = true;
         progressContainer.style.display = 'block';
+
         progressBar.style.width = '0%';
         progressBar.innerHTML = '0%';
-        resultDiv.innerHTML = '';
+        sizeText.innerHTML = `已上传 0 / ${formatSize(totalBytesAll)}`;
+        resultDiv.innerHTML = '正在上传...';
 
-        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB 每块
-
-        for (let file of fileInput.files) {
+        for (const file of files) {
             const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
             for (let i = 0; i < totalChunks; i++) {
+
                 const start = i * CHUNK_SIZE;
                 const end = Math.min(file.size, start + CHUNK_SIZE);
                 const chunk = file.slice(start, end);
@@ -66,27 +93,34 @@
                 formData.append('chunkIndex', i);
                 formData.append('totalChunks', totalChunks);
 
-                try {
-                    const response = await fetch(window.location.href, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (!response.ok) {
-                        throw new Error('上传失败: ' + response.status);
-                    }
-                    const percent = Math.round(((i + 1) / totalChunks) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressBar.innerHTML = percent + '%';
-                } catch (err) {
+                // 前端上传请求
+                const resp = await fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!resp.ok) {
                     submitButton.disabled = false;
-                    resultDiv.innerHTML = '❌ 上传失败: ' + err.message;
+                    resultDiv.innerHTML = `❌ 上传失败: ${resp.status}`;
                     return;
                 }
+
+                // 更新状态
+                uploadedBytes += chunk.size;
+                uploadedChunks++;
+
+                const percent = Math.round(uploadedChunks / totalChunksAll * 100);
+
+                progressBar.style.width = percent + '%';
+                progressBar.innerHTML = percent + '%';
+
+                sizeText.innerHTML = `已上传 ${formatSize(uploadedBytes)} / ${formatSize(totalBytesAll)}`;
             }
         }
 
         submitButton.disabled = false;
-        resultDiv.innerHTML = '✅ 所有文件分块上传完成！';
+        resultDiv.innerHTML = '✅ 所有文件上传完成！';
+        fileInput.value = "";
     });
 </script>
 </body>
