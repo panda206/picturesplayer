@@ -619,12 +619,24 @@ class PhotoFolderFragment : Fragment() {
 
     private fun loadPhotos() {
         photoList.clear()
+
+        // 【修改点】：扩展允许的文件类型列表
+        val allowedExtensions = listOf(
+            "jpg", "jpeg", "png", "webp", "gif",  // 现有图片格式
+            "heic", "heif",                       // HEIC 格式
+            "mp4", "mov", "avi", "mkv", "webm"    // 常见视频格式
+        )
+
         folder.listFiles()?.forEach {
             val ext = it.extension.lowercase()
-            if (it.isFile && ext in listOf("jpg","jpeg","png","webp","gif")) {
+
+            // 检查文件是否在允许的扩展名列表中
+            if (it.isFile && ext in allowedExtensions) {
                 photoList.add(it)
             }
         }
+        // 提示：如果您希望同时展示图片和视频，您的 photoList 可能需要存储一个通用的数据类型
+        // 并且您的 UI 渲染逻辑需要能够区分和处理图片和视频。
     }
 
     // ---------------------------------------------------------

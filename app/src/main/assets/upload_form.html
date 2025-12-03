@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>分块文件上传</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h3 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+        #uploadForm input[type="file"] { width: 100%; margin-top: 10px; }
+        #uploadForm input[type="submit"] { margin-top: 15px; width: 100%; padding: 10px; background-color: #4CAF50; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        #uploadForm input[type="submit"]:hover { background-color: #45a049; }
+        .progress-container { margin-top: 20px; display: none; }
+        .progress-bar { width: 0%; height: 25px; background-color: #2196F3; text-align: center; line-height: 25px; color: white; border-radius: 4px; transition: width 0.3s; }
+        #result { margin-top: 20px; padding: 15px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h3>分块文件上传服务</h3>
+    <form id="uploadForm">
+        <label for="fileInput">选择文件（可多选）：</label>
+        <input type="file" id="fileInput" name="file" multiple required />
+        <input type="submit" value="开始上传" id="submitButton"/>
+    </form>
+
+    <div class="progress-container" id="progressContainer">
+        <label>上传进度:</label>
+        <div id="progressBar" class="progress-bar">0%</div>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const fileInput = document.getElementById('fileInput');
+        const submitButton = document.getElementById('submitButton');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const resultDiv = document.getElementById('result');
+
+        if (fileInput.files.length === 0) return alert('请选择文件！');
+
+        submitButton.disabled = true;
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.innerHTML = '0%';
+        resultDiv.innerHTML = '';
+
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB 每块
+
+        for (let file of fileInput.files) {
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(file.size, start + CHUNK_SIZE);
+                const chunk = file.slice(start, end);
+
+                const formData = new FormData();
+                formData.append('file', chunk);
+                formData.append('fileName', file.name);
+                formData.append('chunkIndex', i);
+                formData.append('totalChunks', totalChunks);
+
+                try {
+                    const response = await fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) {
+                        throw new Error('上传失败: ' + response.status);
+                    }
+                    const percent = Math.round(((i + 1) / totalChunks) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.innerHTML = percent + '%';
+                } catch (err) {
+                    submitButton.disabled = false;
+                    resultDiv.innerHTML = '❌ 上传失败: ' + err.message;
+                    return;
+                }
+            }
+        }
+
+        submitButton.disabled = false;
+        resultDiv.innerHTML = '✅ 所有文件分块上传完成！';
+    });
+</script>
+</body>
+</html>
